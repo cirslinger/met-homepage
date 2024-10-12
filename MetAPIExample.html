@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Met Museum Random Object</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    img {
+      max-width: 800px;
+      max-height: 800px;
+      margin-right: 20px;
+    }
+    .info {
+      max-width: 500px;
+      text-align: left;
+    }
+    .loading {
+      font-style: italic;
+      color: gray;
+      text-align: center;
+    }
+    button {
+      display: block;
+      margin: 0 auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .info a {
+      color: blue;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Met Museum Random Object</h1>
+  <button id="loadObject">Generate New Object</button>
+  <div id="objectDetails" class="container">
+    <p class="loading">Loading a random object...</p>
+  </div>
+
+  <script>
+    async function fetchObjectWithImage() {
+      const objectDetailsDiv = document.getElementById('objectDetails');
+      objectDetailsDiv.innerHTML = '<p class="loading">Loading...</p>';
+
+      try {
+        const response = await fetch('https://collectionapi.metmuseum.org/public/collection/v1/objects');
+        const data = await response.json();
+        const objectIDs = data.objectIDs;
+
+        let found = false;
+        let objectData;
+
+        while (!found) {
+          const randomID = objectIDs[Math.floor(Math.random() * objectIDs.length)];
+          const objectResponse = await fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${randomID}`);
+          objectData = await objectResponse.json();
+
+          if (objectData.primaryImage) {
+            found = true;
+          }
+        }
+
+        const artistLink = objectData.artistWikidata_URL 
+          ? `<a href="${objectData.artistWikidata_URL}" target="_blank">${objectData.artistDisplayName}</a>` 
+          : objectData.artistDisplayName;
+
+        objectDetailsDiv.innerHTML = `
+          <div class="container">
+            <img src="${objectData.primaryImageSmall}" alt="${objectData.title}" />
+            <div class="info">
+              <h2>${objectData.title || 'No Title Available'}</h2>
+              <p><strong>Object Name:</strong> ${objectData.objectName || 'N/A'}</p>
+              <p><strong>Artist:</strong> ${artistLink || 'N/A'}</p>
+              <p><strong>Artist Bio:</strong> ${objectData.artistDisplayBio || 'N/A'}</p>
+              <p><strong>Culture:</strong> ${objectData.culture || 'N/A'}</p>
+              <p><strong>Department:</strong> ${objectData.department || 'N/A'}</p>
+              <p><strong>Date:</strong> ${objectData.objectDate || 'N/A'}</p>
+              <p><strong>Medium:</strong> ${objectData.medium || 'N/A'}</p>
+              <p><strong>Dimensions:</strong> ${objectData.dimensions || 'N/A'}</p>
+              <p><strong>Credit Line:</strong> ${objectData.creditLine || 'N/A'}</p>
+              <p><strong>Accession Number:</strong> ${objectData.accessionNumber || 'N/A'}</p>
+              <p><strong>Public Domain:</strong> ${objectData.isPublicDomain ? 'Yes' : 'No'}</p>
+              <p><strong>Repository:</strong> ${objectData.repository || 'N/A'}</p>
+              <p><strong>More Info:</strong> <a href="${objectData.objectURL}" target="_blank">View on Met Museum</a></p>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        objectDetailsDiv.innerHTML = '<p class="loading">Failed to load data. Please try again.</p>';
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    window.addEventListener('load', fetchObjectWithImage);
+    document.getElementById('loadObject').addEventListener('click', fetchObjectWithImage);
+  </script>
+</body>
+</html>
